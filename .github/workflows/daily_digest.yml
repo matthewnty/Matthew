@@ -1,0 +1,75 @@
+name: Daily Stock Digest
+
+# ──────────────────────────────────────────────────────────────────────────
+# Runs every day at 7:00 PM UTC.
+# To change timezone, convert your local 7 PM to UTC and update the cron.
+#   Examples:
+#     7 PM New York  (UTC-5/EDT) → '0 23 * * *'
+#     7 PM London    (UTC+1/BST) → '0 18 * * *'
+#     7 PM Hong Kong (UTC+8)     → '0 11 * * *'
+# ──────────────────────────────────────────────────────────────────────────
+on:
+  schedule:
+    - cron: '0 19 * * *'   # 7:00 PM UTC daily
+  workflow_dispatch:         # allow manual "Run workflow" from the Actions tab
+
+permissions:
+  contents: write   # needed to commit the digest file
+  issues: write     # needed to create the daily GitHub Issue
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # ------------------------------------------------------------------ #
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ------------------------------------------------------------------ #
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # ------------------------------------------------------------------ #
+      - name: Install dependencies
+        run: pip install --quiet requests
+
+      # ------------------------------------------------------------------ #
+      - name: Run daily digest
+        run: python scripts/stock_digest.py
+
+      # ------------------------------------------------------------------ #
+      - name: Ensure "digest" label exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create digest \
+            --description "Auto-generated daily stock digest" \
+            --color "0075ca" \
+            --repo "${{ github.repository }}" 2>/dev/null || true
+
+      # ------------------------------------------------------------------ #
+      - name: Create GitHub Issue with today's digest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          DIGEST_FILE="digest/${DATE}.md"
+          gh issue create \
+            --title "📈 Daily Stock Digest — ${DATE}" \
+            --body-file "${DIGEST_FILE}" \
+            --label "digest" \
+            --repo "${{ github.repository }}"
+
+      # ------------------------------------------------------------------ #
+      - name: Commit digest file to repository
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add digest/
+          git diff --cached --quiet \
+            || git commit -m "chore: daily digest $(date -u +%Y-%m-%d)" \
+            && git push
