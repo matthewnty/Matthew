@@ -39,6 +39,40 @@ You can still do it with an external bridge or self-hosted runner + `signal-cli`
 
 ---
 
+## BABA News Tracker (Discord)
+
+Fetches the **latest 5 BABA (Alibaba) stock news** headlines every 6 hours and posts them as a Discord embed to your channel.
+
+### Setup
+
+1. **Create a Discord Webhook**
+   - Open your Discord server and navigate to the target channel.
+   - Go to **Channel Settings → Integrations → Webhooks → New Webhook**.
+   - Copy the **Webhook URL**.
+
+2. **Add the Webhook URL as a GitHub Secret**
+   - In this repository, go to **Settings → Secrets and variables → Actions**.
+   - Click **New repository secret**.
+   - Name: `DISCORD_WEBHOOK_URL`
+   - Value: *(paste the webhook URL)*
+
+3. **Enable the workflow**
+   - The workflow `.github/workflows/baba_news_tracker.yml` runs automatically every 6 hours.
+   - You can also trigger it manually from the **Actions** tab → **BABA News Tracker** → **Run workflow**.
+
+### How it works
+
+| File | Purpose |
+|------|---------|
+| `scripts/baba_news_tracker.py` | Fetches news from Yahoo Finance RSS (Google News as fallback), formats a Discord embed, and posts via webhook |
+| `.github/workflows/baba_news_tracker.yml` | Scheduled workflow (every 6 hours + manual trigger) |
+
+News sources used (in order):
+1. **Yahoo Finance RSS** — `feeds.finance.yahoo.com`
+2. **Google News RSS** — fallback when Yahoo returns no results
+
+---
+
 ## 廣東話版本（Cantonese）
 
 ### 1) 目標

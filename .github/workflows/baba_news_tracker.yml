@@ -1,0 +1,47 @@
+name: BABA News Tracker
+
+# ──────────────────────────────────────────────────────────────────────────
+# Fetches the latest 5 BABA (Alibaba) stock news headlines and posts them
+# to a Discord channel via webhook every 6 hours.
+#
+# Setup (one-time):
+#   1. In your Discord server, open the target channel.
+#   2. Go to Channel Settings → Integrations → Webhooks → New Webhook.
+#   3. Copy the webhook URL.
+#   4. In this GitHub repository, go to:
+#      Settings → Secrets and variables → Actions → New repository secret
+#      Name : DISCORD_WEBHOOK_URL
+#      Value: <paste the webhook URL>
+# ──────────────────────────────────────────────────────────────────────────
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # Every 6 hours: 00:00, 06:00, 12:00, 18:00 UTC
+  workflow_dispatch:          # Allow manual "Run workflow" from the Actions tab
+
+jobs:
+  baba-news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      # ------------------------------------------------------------------ #
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ------------------------------------------------------------------ #
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # ------------------------------------------------------------------ #
+      - name: Install dependencies
+        run: pip install --quiet requests
+
+      # ------------------------------------------------------------------ #
+      - name: Fetch BABA news and send to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python scripts/baba_news_tracker.py
